@@ -1,0 +1,35 @@
+{
+  "name": "natureco-sdk",
+  "version": "1.0.5",
+  "description": "Official JavaScript SDK for NatureCo API",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "natureco",
+    "api",
+    "sdk",
+    "bot",
+    "ai",
+    "chatbot",
+    "discord",
+    "telegram",
+    "slack",
+    "instagram"
+  ],
+  "author": "NatureCo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/natureco/natureco-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/natureco/natureco-sdk/issues"
+  },
+  "homepage": "https://natureco.me/docs/sdk",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
