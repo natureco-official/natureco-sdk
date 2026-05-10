@@ -714,8 +714,8 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 ## 💬 Support
 
 - Email: support@natureco.me
-- Discord: [Join our community](https://discord.gg/natureco)
-- Twitter: [@natureco](https://twitter.com/natureco)
+- Discord: [Join our community](https://discord.gg/naturecofficial)
+- Twitter: [@Naturecofficial](https://twitter.com/Naturecofficial)
 
 ## 📝 Changelog
 
