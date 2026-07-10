@@ -749,3 +749,7 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 ---
 
 Made with ❤️ by [NatureCo](https://natureco.me)
+
+---
+
+<sub>Part of the **NatureCo** ecosystem — [natureco.me](https://natureco.me) · NatureCo ekosisteminin parçası</sub>
