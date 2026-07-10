@@ -1,6 +1,6 @@
 /**
  * NatureCo JavaScript SDK
- * @version 1.0.5
+ * @version 1.1.0
  * @description Official JavaScript SDK for NatureCo API
  */
 
@@ -334,6 +334,126 @@ class WidgetModule {
   }
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// NatureCoAuth — tek NatureCo hesabı (SSO). natureco.me Supabase Auth üstünde,
+// bağımlılıksız (Supabase REST + global fetch). CLI/terminal/portal aynı hesabı
+// paylaşır. Oturum ~/.natureco/auth.json'da saklanır (Node); tarayıcıda bellekte.
+// ════════════════════════════════════════════════════════════════════════════
+
+// natureco.me kimlik projesi — anon key PUBLIC (client'lara gömülür, gizli değil)
+const NC_SUPABASE_URL = 'https://mxnlehflfkesasclcldy.supabase.co';
+const NC_SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14bmxlaGZsZmtlc2FzY2xjbGR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NDA5MzEsImV4cCI6MjA5MjIxNjkzMX0.93aPOg6bVmgFaJvsM5jVZwiX2TTuFIyAzhP6BlhBkGU';
+
+class NatureCoAuth {
+  /**
+   * @param {object} [options]
+   * @param {string} [options.url]      Supabase URL (varsayılan natureco.me)
+   * @param {string} [options.anonKey]  public anon key
+   * @param {object} [options.store]    { load(): session|null, save(session), clear() } — özel oturum deposu
+   */
+  constructor(options = {}) {
+    this.url = options.url || NC_SUPABASE_URL;
+    this.anonKey = options.anonKey || NC_SUPABASE_ANON;
+    this.authBase = `${this.url}/auth/v1`;
+    this.store = options.store || _defaultStore();
+    this._session = this.store.load();
+  }
+
+  async _post(path, body, accessToken) {
+    const headers = { 'apikey': this.anonKey, 'Content-Type': 'application/json' };
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+    const res = await fetch(`${this.authBase}${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new NatureCoError(data.error_description || data.msg || data.error || 'Auth hatası', res.status, data);
+    return data;
+  }
+
+  _persist(session) {
+    this._session = session;
+    try { this.store.save(session); } catch (_) {}
+    return session;
+  }
+
+  /** E-posta + şifre ile giriş → oturum saklanır */
+  async loginWithPassword(email, password) {
+    const s = await this._post('/token?grant_type=password', { email, password });
+    return this._persist(_shape(s));
+  }
+
+  /** Şifresiz: e-postaya OTP kodu gönder (mevcut hesap; kayıt açmaz) */
+  async sendOtp(email) {
+    await this._post('/otp', { email, create_user: false });
+    return { sent: true, email };
+  }
+
+  /** OTP kodunu doğrula → oturum saklanır */
+  async verifyOtp(email, token) {
+    const s = await this._post('/verify', { type: 'email', email, token });
+    return this._persist(_shape(s));
+  }
+
+  /** Refresh token ile access token yenile */
+  async refresh() {
+    if (!this._session || !this._session.refresh_token) throw new NatureCoError('Oturum yok — önce giriş yapın', 401);
+    const s = await this._post('/token?grant_type=refresh_token', { refresh_token: this._session.refresh_token });
+    return this._persist(_shape(s));
+  }
+
+  /** Geçerli (gerekirse yenilenmiş) access token */
+  async getAccessToken() {
+    if (!this._session) return null;
+    if (this._session.expires_at && Date.now() / 1000 > this._session.expires_at - 60) {
+      try { await this.refresh(); } catch (_) { return null; }
+    }
+    return this._session ? this._session.access_token : null;
+  }
+
+  /** Giriş yapan kullanıcıyı döndür ({ id, email, ... }) veya null */
+  async whoami() {
+    const token = await this.getAccessToken();
+    if (!token) return null;
+    const res = await fetch(`${this.authBase}/user`, { headers: { 'apikey': this.anonKey, 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) return null;
+    return res.json();
+  }
+
+  isLoggedIn() { return !!(this._session && this._session.access_token); }
+
+  /** Çıkış — oturumu sil */
+  logout() {
+    this._session = null;
+    try { this.store.clear(); } catch (_) {}
+  }
+}
+
+// Supabase token yanıtını sade bir oturuma indir
+function _shape(s) {
+  return {
+    access_token: s.access_token,
+    refresh_token: s.refresh_token,
+    token_type: s.token_type || 'bearer',
+    expires_at: s.expires_at || (s.expires_in ? Math.floor(Date.now() / 1000) + s.expires_in : null),
+    user: s.user ? { id: s.user.id, email: s.user.email } : null,
+  };
+}
+
+// Varsayılan oturum deposu: Node'da ~/.natureco/auth.json (0600); tarayıcıda bellekte
+function _defaultStore() {
+  try {
+    const fs = require('fs'); const os = require('os'); const path = require('path');
+    const dir = path.join(os.homedir(), '.natureco');
+    const file = path.join(dir, 'auth.json');
+    return {
+      load() { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (_) { return null; } },
+      save(s) { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(file, JSON.stringify(s, null, 2)); try { fs.chmodSync(file, 0o600); } catch (_) {} },
+      clear() { try { fs.unlinkSync(file); } catch (_) {} },
+    };
+  } catch (_) {
+    let mem = null; // tarayıcı / fs yok
+    return { load: () => mem, save: (s) => { mem = s; }, clear: () => { mem = null; } };
+  }
+}
+
 // Custom Error Class
 class NatureCoError extends Error {
   constructor(message, statusCode, response) {
@@ -346,8 +466,9 @@ class NatureCoError extends Error {
 
 // Export for Node.js and browser
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { NatureCoClient, NatureCoError };
+  module.exports = { NatureCoClient, NatureCoAuth, NatureCoError };
 } else if (typeof window !== 'undefined') {
   window.NatureCoClient = NatureCoClient;
+  window.NatureCoAuth = NatureCoAuth;
   window.NatureCoError = NatureCoError;
 }
