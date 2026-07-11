@@ -1,6 +1,6 @@
 {
   "name": "natureco-sdk",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Official JavaScript SDK for NatureCo API",
   "main": "index.js",
   "types": "index.d.ts",

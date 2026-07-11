@@ -753,7 +753,10 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 ## 📝 Changelog
 
-### v1.2.0 (Latest)
+### v1.2.1 (Latest)
+- Added TypeScript type definitions (index.d.ts) covering the full SDK — NatureCoClient, all modules, and NatureCoAuth
+
+### v1.2.0
 - `NatureCoAuth.verifyLink()` — sign in from a magic login-link email (implicit + token_hash flows), works in Node and the browser
 - `verifyOtp()` now falls back to the `magiclink` verification type, so both code- and link-style templates work
 - Documented the NatureCo Account (SSO) flow in the README
