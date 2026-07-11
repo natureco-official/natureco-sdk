@@ -61,6 +61,40 @@ const client = new NatureCoClient('nc_your_api_key_here', {
 });
 ```
 
+## 🪪 NatureCo Account (SSO)
+
+`NatureCoClient` uses an **API key** for bot/automation access. A NatureCo
+**account** is different — it's a person's single identity, shared across the
+whole ecosystem (the CLI, Cupertino Terminal and the developer portal all sign
+in to the same account). Use `NatureCoAuth` for that.
+
+```javascript
+const { NatureCoAuth } = require('natureco-sdk');
+
+const auth = new NatureCoAuth();
+// In Node the session is stored in ~/.natureco/auth.json (0600) and shared
+// with the NatureCo CLI/terminal; in the browser it's kept in memory.
+
+// Password sign-in
+await auth.loginWithPassword('you@example.com', 'your-password');
+
+// Or passwordless: send a code/login link to the email…
+await auth.sendOtp('you@example.com');
+// …then verify. Depending on your email template the user receives either a
+// 6-digit code or a magic login link:
+await auth.verifyOtp('you@example.com', '123456');   // 6-digit code
+await auth.verifyLink('https://natureco.me/#access_token=…'); // pasted login link
+
+const me = await auth.whoami();   // { id, email, … } or null
+auth.isLoggedIn();                // boolean
+auth.logout();
+```
+
+`verifyLink()` accepts the full URL from a magic-link email. It handles both the
+implicit flow (the link fragment already carries `access_token`/`refresh_token`)
+and the `token_hash` flow. Pass a custom `{ store }` in the constructor to
+persist the session somewhere other than the default.
+
 ## 🤖 Bot Management
 
 ### Create a Bot
@@ -719,7 +753,15 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 ## 📝 Changelog
 
-### v1.0.5 (Latest)
+### v1.2.0 (Latest)
+- `NatureCoAuth.verifyLink()` — sign in from a magic login-link email (implicit + token_hash flows), works in Node and the browser
+- `verifyOtp()` now falls back to the `magiclink` verification type, so both code- and link-style templates work
+- Documented the NatureCo Account (SSO) flow in the README
+
+### v1.1.0
+- Added `NatureCoAuth` — single NatureCo account (SSO) shared across the CLI, terminal and portal (password + passwordless OTP, session refresh)
+
+### v1.0.5
 - Updated README with comprehensive examples
 - Added webhook signature verification
 - Improved error handling documentation

@@ -1,6 +1,6 @@
 /**
  * NatureCo JavaScript SDK
- * @version 1.1.0
+ * @version 1.2.0
  * @description Official JavaScript SDK for NatureCo API
  */
 
@@ -386,10 +386,55 @@ class NatureCoAuth {
     return { sent: true, email };
   }
 
-  /** OTP kodunu doğrula → oturum saklanır */
+  /**
+   * Verify the OTP code → session saved. Depending on the Supabase email
+   * template, the code's verification type may be 'email' or 'magiclink',
+   * so both are attempted.
+   */
   async verifyOtp(email, token) {
-    const s = await this._post('/verify', { type: 'email', email, token });
-    return this._persist(_shape(s));
+    const code = String(token).replace(/\s+/g, '');
+    try {
+      return this._persist(_shape(await this._post('/verify', { type: 'email', email, token: code })));
+    } catch (e1) {
+      try {
+        return this._persist(_shape(await this._post('/verify', { type: 'magiclink', email, token: code })));
+      } catch (_) {
+        throw e1;
+      }
+    }
+  }
+
+  /**
+   * Verify a magic LOGIN LINK from the email (when the template sends a link
+   * instead of a 6-digit code). Two shapes are supported:
+   *   1) Implicit flow: the link fragment already carries access_token +
+   *      refresh_token → session is created directly.
+   *   2) token_hash: verified via /verify.
+   * Works in Node and the browser.
+   */
+  async verifyLink(link) {
+    let u;
+    try { u = new URL(String(link).trim()); }
+    catch (e) { throw new NatureCoError('Invalid link', 400, { cause: e }); }
+    const q = u.searchParams;
+    const frag = new URLSearchParams((u.hash || '').replace(/^#/, ''));
+    const pick = (k) => frag.get(k) || q.get(k);
+
+    const access_token = pick('access_token');
+    if (access_token) {
+      return this._persist(_shape({
+        access_token,
+        refresh_token: pick('refresh_token'),
+        token_type: pick('token_type') || 'bearer',
+        expires_at: parseInt(pick('expires_at') || '0', 10) || null,
+        expires_in: parseInt(pick('expires_in') || '0', 10) || null,
+        user: _userFromJwt(access_token),
+      }));
+    }
+    const token_hash = pick('token_hash') || pick('token');
+    const type = pick('type') || 'magiclink';
+    if (!token_hash) throw new NatureCoError('No verification token found in link', 400);
+    return this._persist(_shape(await this._post('/verify', { type, token_hash })));
   }
 
   /** Refresh token ile access token yenile */
@@ -424,6 +469,19 @@ class NatureCoAuth {
     this._session = null;
     try { this.store.clear(); } catch (_) {}
   }
+}
+
+// JWT access_token içinden kullanıcıyı çöz (imza doğrulaması yok — yalnız görüntüleme).
+// Node (Buffer) ve tarayıcı (atob) ortamlarında çalışır.
+function _userFromJwt(token) {
+  try {
+    const b64 = String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    let json;
+    if (typeof Buffer !== 'undefined') json = Buffer.from(b64, 'base64').toString('utf8');
+    else json = decodeURIComponent(escape(atob(b64)));
+    const p = JSON.parse(json);
+    return { id: p.sub, email: p.email };
+  } catch (_) { return null; }
 }
 
 // Supabase token yanıtını sade bir oturuma indir
