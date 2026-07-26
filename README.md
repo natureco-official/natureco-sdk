@@ -29,7 +29,7 @@ For browser usage via CDN:
 const { NatureCoClient } = require('natureco-sdk');
 
 // Initialize the client with your API key
-const client = new NatureCoClient('nc_your_api_key_here');
+const client = new NatureCoClient('nco_your_api_key_here');
 
 // Create a new bot
 const bot = await client.bots.create({
@@ -48,14 +48,14 @@ console.log('Bot created:', bot);
 1. Go to [NatureCo Developers Portal](https://natureco.me/developers)
 2. Navigate to **API Keys** section
 3. Click **Generate New Key**
-4. Copy your API key (starts with `nc_` or `nco_`)
+4. Copy your API key — new keys start with `nco_`; older `nc_` keys keep working
 
 ### Initialize Client
 
 ```javascript
 const { NatureCoClient } = require('natureco-sdk');
 
-const client = new NatureCoClient('nc_your_api_key_here', {
+const client = new NatureCoClient('nco_your_api_key_here', {
   baseURL: 'https://api.natureco.me/api/v1', // Optional: custom API endpoint
   timeout: 30000 // Optional: request timeout in ms (default: 30000)
 });
@@ -587,7 +587,7 @@ try {
 ### Custom Timeout
 
 ```javascript
-const client = new NatureCoClient('nc_your_api_key', {
+const client = new NatureCoClient('nco_your_api_key', {
   timeout: 60000 // 60 seconds
 });
 ```
@@ -595,7 +595,7 @@ const client = new NatureCoClient('nc_your_api_key', {
 ### Custom Base URL (Self-hosted)
 
 ```javascript
-const client = new NatureCoClient('nc_your_api_key', {
+const client = new NatureCoClient('nco_your_api_key', {
   baseURL: 'https://your-custom-domain.com/api/v1'
 });
 ```
@@ -639,7 +639,7 @@ const bot = await retryRequest(() =>
 
   <script src="https://unpkg.com/natureco-sdk@latest/index.js"></script>
   <script>
-    const client = new NatureCoClient('nc_your_api_key');
+    const client = new NatureCoClient('nco_your_api_key');
 
     async function sendMessage() {
       const message = document.getElementById('message').value;
@@ -669,7 +669,7 @@ const { NatureCoClient } = require('natureco-sdk');
 
 async function main() {
   // Initialize client
-  const client = new NatureCoClient('nc_your_api_key');
+  const client = new NatureCoClient('nco_your_api_key');
 
   try {
     // Create a bot
@@ -749,7 +749,7 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 - Email: support@natureco.me
 - Discord: [Join our community](https://discord.gg/naturecofficial)
-- Twitter: [@Naturecofficial](https://twitter.com/Naturecofficial)
+- Twitter: [@naturecofficial](https://x.com/naturecofficial)
 
 ## 📝 Changelog
 
