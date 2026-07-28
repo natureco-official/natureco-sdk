@@ -87,7 +87,7 @@ class BotsModule {
     return this.client.request('GET', '/bots');
   }
 
-  async create({ name, systemPrompt, model = 'gpt-4' }) {
+  async create({ name, systemPrompt, model = 'llama-3.3-70b-versatile' }) {
     return this.client.request('POST', '/bots', {
       name,
       system_prompt: systemPrompt,
@@ -296,18 +296,20 @@ class WidgetModule {
 
   getEmbedCode(botIdOrOptions, theme = 'light', position = 'bottom-right') {
     // Backward compatibility: botId string olarak geçilebilir veya options object
-    let botId, finalTheme, finalPosition;
+    let botId, finalTheme, finalPosition, licenseKey;
     
     if (typeof botIdOrOptions === 'string') {
       // Eski kullanım: getEmbedCode(botId, theme, position)
       botId = botIdOrOptions;
       finalTheme = theme;
       finalPosition = position;
+      licenseKey = null;
     } else if (typeof botIdOrOptions === 'object') {
-      // Yeni kullanım: getEmbedCode({ botId, theme, position })
+      // Yeni kullanım: getEmbedCode({ botId, theme, position, licenseKey })
       botId = botIdOrOptions.botId;
       finalTheme = botIdOrOptions.theme || 'light';
       finalPosition = botIdOrOptions.position || 'bottom-right';
+      licenseKey = botIdOrOptions.licenseKey || null;
     } else {
       throw new Error('botId is required');
     }
@@ -316,7 +318,37 @@ class WidgetModule {
       throw new Error('botId is required');
     }
 
-    return `<script src="https://api.natureco.me/widget.js" data-bot-id="${botId}" data-theme="${finalTheme}" data-position="${finalPosition}"></script>`;
+    // Gömme kodu MÜŞTERİNİN HERKESE AÇIK sayfasında yer alır; buraya yazılan
+    // her şey "kaynağı görüntüle" diyen herkese açıktır.
+    //
+    // 1) Lisans anahtarının TAMAMI yazılmaz. Anahtar kurumsal özellikleri
+    //    etkinleştirmek için verilir ve doğrulama ucu kimlik doğrulaması
+    //    istemez — okuyan biri onu kendi kurulumunda deneyebilir. Son grup
+    //    dışında maskelenir: "hangi lisans" sorusunu yanıtlar, yeniden
+    //    kullanılamaz.
+    // 2) Değerler kaçış denetiminden geçer. Denenmiş girdiler:
+    //      licenseKey "NCL--->evil<script>"  → HTML yorumunu erken kapatıyordu
+    //      botId      'x" onerror="alert(1)' → script etiketine öznitelik
+    //                                          enjekte ediyordu (XSS)
+    //    Üretilen kod müşterinin sitesine yapıştırıldığı için bu doğrudan
+    //    onların ziyaretçilerini etkilerdi.
+    const maskele = (anahtar) => {
+      const temiz = String(anahtar).replace(/[^A-Za-z0-9-]/g, '');
+      const parcalar = temiz.split('-').filter(Boolean);
+      if (parcalar.length < 2) return '****';
+      return [parcalar[0], ...parcalar.slice(1, -1).map(() => '****'), parcalar[parcalar.length - 1]].join('-');
+    };
+    const yorumGuvenli = (metin) => String(metin).replace(/-{2,}/g, '-').replace(/[<>]/g, '');
+    // Beyaz liste, kara liste değil: bu üç değer kimlik/seçenek adıdır, serbest
+    // metin değil. Tehlikeli karakterleri tek tek elemek yerine yalnızca
+    // güvenli olanlara izin vermek, düşünmediğimiz bir kaçış biçimini de kapatır.
+    const oznitelikGuvenli = (metin) => String(metin).replace(/[^A-Za-z0-9._:-]/g, '');
+
+    const licenseComment = licenseKey
+      ? `<!-- NatureCo Licensed Bot - License: ${yorumGuvenli(maskele(licenseKey))} - Verify at: https://natureco.me/license-verify -->\n`
+      : '<!-- NatureCo Widget - Get your license at: https://natureco.me/developers -->\n';
+
+    return `${licenseComment}<script src="https://api.natureco.me/widget.js" data-bot-id="${oznitelikGuvenli(botId)}" data-theme="${oznitelikGuvenli(finalTheme)}" data-position="${oznitelikGuvenli(finalPosition)}"></script>`;
   }
 
   async updateSettings({ botId, theme, position, welcomeMessage, primaryColor }) {
