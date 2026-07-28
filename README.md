@@ -805,5 +805,6 @@ Made with ❤️ by [NatureCo](https://natureco.me)
 - [**NatureCo CLI**](https://github.com/natureco-official/natureco-cli) — A terminal-native AI assistant: chat, a coding agent, automation, and bots on Telegram, Discord and Slack
 - [**Urðr**](https://github.com/natureco-official/urdr) — Tree-structured memory for AI coding agents — plain Markdown you can `git diff`, no vector database
 - [**CodeDNA**](https://github.com/natureco-official/codedna) — How much of a commit was written by AI, and does its author actually understand it?
+- [**Verðandi**](https://github.com/natureco-official/verdandi) — Task-context compiler for AI coding agents — indexes with the TypeScript AST so the agent stops burning tokens hunting for the right file
 
 <sub>Part of the **NatureCo** ecosystem — [natureco.me](https://natureco.me) · NatureCo ekosisteminin parçası</sub>
