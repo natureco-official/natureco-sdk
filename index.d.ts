@@ -80,7 +80,13 @@ export class ApiKeysModule {
 
 export class WidgetModule {
   getEmbedCode(botId: string, theme?: string, position?: string): string;
-  getEmbedCode(options: { botId: string; theme?: string; position?: string }): string;
+  /**
+   * @param options.licenseKey Lisanslı kurulumlarda gömme koduna bir kimlik
+   * yorumu ekler. Anahtar MASKELENEREK yazılır (NCL-****-****-XXXX): üretilen
+   * kod müşterinin herkese açık sayfasında durur ve tam anahtar oradan
+   * okunabilir olmamalıdır.
+   */
+  getEmbedCode(options: { botId: string; theme?: string; position?: string; licenseKey?: string }): string;
   updateSettings(params: { botId: string; theme?: string; position?: string; welcomeMessage?: string; primaryColor?: string }): Promise<any>;
   getSettings(botId: string): Promise<any>;
 }
